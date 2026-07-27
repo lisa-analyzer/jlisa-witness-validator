@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <key id="witness-type"     attr.name="witness-type"     attr.type="string"  for="graph"/>
+  <key id="producer"         attr.name="producer"         attr.type="string"  for="graph"/>
+  <key id="programfile"      attr.name="programfile"      attr.type="string"  for="graph"/>
+  <key id="sourcecodelang"   attr.name="sourcecodelang"   attr.type="string"  for="graph"/>
+  <key id="assumption"       attr.name="assumption"       attr.type="string"  for="edge"/>
+  <key id="assumption.scope" attr.name="assumption.scope" attr.type="string"  for="edge"/>
+  <key id="startline"        attr.name="startline"        attr.type="int"     for="edge"/>
+  <key id="originfile"       attr.name="originfile"       attr.type="string"  for="edge"/>
+  <key id="violation"        attr.name="violation"        attr.type="boolean" for="node"/>
+
+  <graph edgedefault="directed">
+    <data key="witness-type">violation_witness</data>
+    <data key="producer">JBMC-adapted</data>
+    <data key="programfile">Main.java</data>
+    <data key="sourcecodelang">Java</data>
+
+    <node id="q0"/>
+    <node id="q1"/>
+    <node id="q2"/>
+    <node id="qErr">
+      <data key="violation">true</data>
+    </node>
+
+    <!--
+      Violation path (adapted from JBMC witness):
+        m = Verifier.nondetInt() = 0  →  0 < 0 || 0 > 3  = false, no early return
+        n = Verifier.nondetInt() = 0  →  0 < 0 || 0 > 23 = false, no early return
+        result = ack(0, 0) = 1
+        0 < 0 || 0 < 0 || 1 >= 0  = true  →  assert false  →  AssertionError @ line 34
+    -->
+
+    <!-- First nondetInt(): m = 0 -->
+    <edge source="q0" target="q1">
+      <data key="assumption">return_tmp0 = 0;</data>
+      <data key="assumption.scope">java::org.sosy_lab.sv_benchmarks.Verifier.nondetInt:()I</data>
+      <data key="startline">24</data>
+      <data key="originfile">Main.java</data>
+    </edge>
+
+    <!-- Second nondetInt(): n = 0 -->
+    <edge source="q1" target="q2">
+      <data key="assumption">return_tmp0 = 0;</data>
+      <data key="assumption.scope">java::org.sosy_lab.sv_benchmarks.Verifier.nondetInt:()I</data>
+      <data key="startline">28</data>
+      <data key="originfile">Main.java</data>
+    </edge>
+
+    <!-- Violation: assert false at line 34 -->
+    <edge source="q2" target="qErr">
+      <data key="startline">34</data>
+      <data key="originfile">Main.java</data>
+    </edge>
+
+  </graph>
+</graphml>

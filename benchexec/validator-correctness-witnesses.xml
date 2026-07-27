@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+  BenchExec benchmark definition for correctness witness validation.
+
+  Resource limits for correctness validation are higher than for violation
+  (abstract interpretation is more expensive than runtime steering):
+    - 900 seconds CPU time
+    - 15 GB memory
+
+  See benchexec/validator-violation-witnesses.xml for usage instructions.
+-->
+
+<benchmark tool="jlisa-witness-validator"
+           displayName="jLISA Correctness Witness Validator"
+           timelimit="900s"
+           memlimit="15 GB"
+           cpuCores="1">
+
+  <option name="--witness">{witnessfile}</option>
+  <option name="--benchmark-dir">{inputfile_path}</option>
+
+  <rundefinition name="correctness-witnesses">
+    <tasks name="sv-benchmarks-java-correctness">
+      <!-- Replace with actual witness task set from sv-benchmarks/java/ -->
+      <includesfile>../sv-benchmarks/java/correctness.set</includesfile>
+      <propertyfile>../sv-benchmarks/java/properties/assert_java.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <columns>
+    <column title="status" />
+    <column title="cputime" />
+    <column title="memory" />
+  </columns>
+
+</benchmark>
