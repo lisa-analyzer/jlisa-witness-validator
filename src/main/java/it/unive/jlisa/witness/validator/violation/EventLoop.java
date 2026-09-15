@@ -26,10 +26,8 @@ import it.unive.jlisa.witness.validator.model.BranchDecision;
 import it.unive.jlisa.witness.validator.model.Interception;
 import it.unive.jlisa.witness.validator.model.TargetPoint;
 import it.unive.jlisa.witness.validator.model.ViolationPlan;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 /**
  * Core JDI event processing loop for violation witness validation.
@@ -66,7 +64,7 @@ public final class EventLoop {
 	private final ViolationPlan plan;
 
 	// Runtime state for interceptions: map from "className.methodName" → Interception
-	private final Map<String, Interception> interceptMap = new HashMap<>();
+	private final Map<String, Queue<Interception>> interceptMap = new HashMap<>();
 	// Runtime state: which MethodEntryRequest corresponds to which interception key
 	private final Map<MethodEntryRequest, String> methodRequests = new HashMap<>();
 
@@ -161,15 +159,20 @@ public final class EventLoop {
 				continue;
 			}
 			String key = ix.className() + "." + ix.methodName();
-			interceptMap.put(key, ix);
+			ValidatorLogger.jdi("SETTING KEY: " + key);
+			interceptMap.computeIfAbsent(key, _ -> new ArrayDeque<>()).offer(ix);
+		}
 
+		for (String key : interceptMap.keySet()) {
+			Interception ixRef = interceptMap.get(key).peek();
+			assert ixRef != null;
 			MethodEntryRequest req = erm.createMethodEntryRequest();
-			req.addClassFilter(ix.className());
+			req.addClassFilter(ixRef.className());
 			req.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD);
 			req.enable();
 			methodRequests.put(req, key);
 			ValidatorLogger.jdi("MethodEntryRequest: {}.{}{}",
-					ix.className(), ix.methodName(), ix.descriptor());
+					ixRef.className(), ixRef.methodName(), ixRef.descriptor());
 		}
 
 		// 2. ClassPrepareRequests for classes with breakpoints
@@ -282,7 +285,11 @@ public final class EventLoop {
 		String methodName = event.method().name();
 		String key = className + "." + methodName;
 
-		Interception ix = interceptMap.get(key);
+		Interception ix = interceptMap.get(key).peek();
+
+        if (ix != null && ix.count() == 1) {
+			interceptMap.get(key).remove();
+		}
 		if (ix == null || !ix.hasRemaining()) {
 			return null; // not an interception target, or already exhausted
 		}
@@ -301,7 +308,7 @@ public final class EventLoop {
 		int remaining = ix.decrementAndGet();
 		if (remaining <= 0) {
 			// All expected occurrences consumed — disable the request
-			disableMethodEntryRequest(key);
+			// fixme: disableMethodEntryRequest(key);
 			ValidatorLogger.event("MethodEntry: {}.{}() — all interceptions consumed, request disabled",
 					className, methodName);
 		}
