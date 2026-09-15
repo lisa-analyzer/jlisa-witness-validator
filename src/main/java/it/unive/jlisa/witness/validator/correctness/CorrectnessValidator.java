@@ -5,7 +5,7 @@ import it.unive.jlisa.analysis.type.JavaInferredTypes;
 import it.unive.jlisa.analysis.value.ConstantPropagationWithIntervals;
 import it.unive.jlisa.checkers.AssertChecker;
 import it.unive.jlisa.frontend.JavaFrontend;
-import it.unive.jlisa.interprocedural.callgraph.JavaContextBasedAnalysis;
+//import it.unive.jlisa.interprocedural.callgraph.JavaContextBasedAnalysis;
 import it.unive.jlisa.interprocedural.callgraph.JavaRTACallGraph;
 import it.unive.jlisa.witness.validator.ValidationException;
 import it.unive.jlisa.witness.validator.correctness.InductionChecker.CheckResult;
@@ -172,7 +172,7 @@ public final class CorrectnessValidator {
 		conf.workdir = workdir;
 		conf.outputs.add(new JSONResults<>());
 		conf.outputs.add(new JSONReportDumper());
-		conf.interproceduralAnalysis = new JavaContextBasedAnalysis<>(150);
+		conf.interproceduralAnalysis =  null; // new JavaContextBasedAnalysis<>(150);
 		conf.callGraph = new JavaRTACallGraph();
 		conf.openCallPolicy = ReturnTopPolicy.INSTANCE;
 		conf.semanticChecks.add(new AssertChecker<>());
