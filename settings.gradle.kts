@@ -9,5 +9,5 @@ rootProject.name = "jlisa-witness-validator"
 //   3. default: ../jlisa   (sibling directory of this repo)
 val jlisaPath = startParameter.projectProperties["jlisaPath"]
     ?: System.getenv("JLISA_HOME")
-    ?: "../jlisa"
+    ?: "../jlisa/jlisa"
 includeBuild(jlisaPath)
