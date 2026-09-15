@@ -6,6 +6,8 @@ import com.sun.jdi.connect.Connector;
 import com.sun.jdi.connect.LaunchingConnector;
 import it.unive.jlisa.witness.validator.ValidationException;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -124,18 +126,21 @@ public final class JdiLauncher {
 	 * @param sourceDir       directory containing {@code .java} source files (non-recursive)
 	 * @param outputDir       directory to write {@code .class} files into (may equal sourceDir)
 	 * @param extraClasspath  additional classpath entries (colon/semicolon-separated), or {@code null}
-	 * @param extraSourcesDir optional root of an additional source tree to compile together with the
+	 * @param extraSources optional root of an additional source tree to compile together with the
 	 *                        benchmark (e.g. the SV-COMP {@code common/} directory); sources are
 	 *                        collected recursively; may be {@code null}
 	 * @throws ValidationException if compilation fails or the Java compiler is unavailable
 	 */
 	public static void compileIfNeeded(File sourceDir, File outputDir, String extraClasspath,
-			File extraSourcesDir)
+			List<File> extraSources)
 			throws ValidationException {
 
 		// Collect .java files from sourceDir (flat)
-		File[] directSources = sourceDir.listFiles((dir, name) -> name.endsWith(".java"));
-		if (directSources == null || directSources.length == 0) {
+		java.util.List<File> recSourceDir = new ArrayList<>();
+		collectJavaSources(sourceDir, recSourceDir);
+
+		//File[] directSources = recSourceDir; // sourceDir.listFiles((dir, name) -> name.endsWith(".java"));
+		if (recSourceDir.isEmpty()) {
 			throw new ValidationException("No .java source files found in " + sourceDir.getAbsolutePath());
 		}
 
@@ -148,14 +153,19 @@ public final class JdiLauncher {
 		}
 
 		// Accumulate all sources: benchmark dir (flat) + extra sources dir (recursive)
-		java.util.List<File> allSources = new java.util.ArrayList<>(
-				java.util.Arrays.asList(directSources));
-		if (extraSourcesDir != null && extraSourcesDir.isDirectory()) {
-			int before = allSources.size();
-			collectJavaSources(extraSourcesDir, allSources);
-			ValidatorLogger.jdi("Extra sources from {}: {} files added",
-					extraSourcesDir.getAbsolutePath(), allSources.size() - before);
+		java.util.List<File> allSources = recSourceDir;
+
+		if (extraSources != null) {
+			for (File source : extraSources) {
+				if (source != null && source.isDirectory()) {
+					int before = allSources.size();
+					collectJavaSources(source, allSources);
+					ValidatorLogger.jdi("Extra sources from {}: {} files added",
+							source.getAbsolutePath(), allSources.size() - before);
+				}
+			}
 		}
+
 
 		javax.tools.JavaCompiler compiler = javax.tools.ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
