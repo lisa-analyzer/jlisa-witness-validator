@@ -2,12 +2,16 @@ package it.unive.jlisa.witness.validator.violation;
 
 import com.sun.jdi.VirtualMachine;
 import it.unive.jlisa.witness.validator.ValidationException;
+import it.unive.jlisa.witness.validator.model.BenchmarkProperties;
 import it.unive.jlisa.witness.validator.model.ViolationPlan;
+import it.unive.jlisa.witness.validator.parser.BenchmarkPropertiesParser;
 import it.unive.jlisa.witness.validator.parser.WitnessModel;
 import it.unive.jlisa.witness.validator.violation.EventLoop.ValidationResult;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Orchestrates violation witness validation using the JDI runtime-steering approach.
@@ -51,6 +55,9 @@ public final class ViolationValidator {
 
 		ViolationPlan plan = model.violationPlan();
 
+		File benchFile = new File(benchmarkDir.getParent(), benchmarkDir.getName() + ".yml");
+		BenchmarkProperties properties = BenchmarkPropertiesParser.parse(benchFile);
+
 		ValidatorLogger.plan("Plan: {}", plan);
 		for (var ix : plan.interceptions()) {
 			ValidatorLogger.plan("  Interception: {}", ix);
@@ -73,7 +80,11 @@ public final class ViolationValidator {
 
 		// Compile if needed (including any extra sources such as Verifier.java from common/)
 		File classOutputDir = benchmarkDir;
-		JdiLauncher.compileIfNeeded(benchmarkDir, classOutputDir, null, extraSourcesDir);
+
+		List<File> extraSources = new ArrayList<>();
+		extraSources.add(extraSourcesDir);
+		extraSources.addAll(properties.inputFiles());
+		JdiLauncher.compileIfNeeded(benchmarkDir, classOutputDir, null, extraSources);
 
 		// Build classpath
 		String classpath = buildClasspath(benchmarkDir);
