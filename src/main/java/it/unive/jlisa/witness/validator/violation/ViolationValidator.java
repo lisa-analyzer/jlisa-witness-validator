@@ -67,8 +67,8 @@ public final class ViolationValidator {
 
 		if (plan.isEmpty()) {
 			ValidatorLogger.warn("[VALIDATE] Violation plan is empty — cannot steer execution");
-			printVerdict(VERDICT_UNKNOWN);
-			return;
+			//printVerdict(VERDICT_UNKNOWN);
+			//return;
 		}
 
 		// Compile if needed (including any extra sources such as Verifier.java from common/)
