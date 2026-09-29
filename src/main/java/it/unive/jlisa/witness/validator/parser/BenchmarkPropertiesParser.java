@@ -43,7 +43,7 @@ public final class BenchmarkPropertiesParser {
         }
     }
 
-    public static BenchmarkProperties parse(File file) {
+    public static BenchmarkProperties parse(File file) throws FileNotFoundException {
         Map<String, Object> properties = loadYaml(file);
         List<File> inputFiles = new ArrayList<>();
         if (properties.get("input_files") instanceof List){
@@ -60,6 +60,12 @@ public final class BenchmarkPropertiesParser {
             );
         }
 
-        return new BenchmarkProperties(inputFiles);
+        File benchDir = inputFiles.getLast();
+
+        if (!file.getName().contains(benchDir.getName())) {
+            throw new FileNotFoundException("Benchmark directory not found, " + file.getName() + " expected");
+        }
+
+        return new BenchmarkProperties(inputFiles, benchDir);
     }
 }

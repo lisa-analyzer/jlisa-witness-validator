@@ -69,12 +69,12 @@ public final class Main {
 		}
 
 		String witnessPath = cmd.getOptionValue("witness");
-		String benchmarkDirPath = cmd.getOptionValue("benchmark-dir");
+		String benchmarkPath = cmd.getOptionValue("benchmark");
 		String java8Exec = cmd.getOptionValue("java");
 		String extraSourcesPath = cmd.getOptionValue("extra-sources");
 
-		if (witnessPath == null || benchmarkDirPath == null) {
-			System.err.println("Error: --witness and --benchmark-dir are required.");
+		if (witnessPath == null || benchmarkPath == null) {
+			System.err.println("Error: --witness and --benchmark are required.");
 			new HelpFormatter().printHelp("jlisa-witness-validator", options);
 			System.out.println("Could not validate");
 			System.exit(0);
@@ -82,7 +82,7 @@ public final class Main {
 		}
 
 		File witnessFile = new File(witnessPath);
-		File benchmarkDir = new File(benchmarkDirPath);
+		File benchmarkFile = new File(benchmarkPath);
 
 		if (!witnessFile.exists()) {
 			System.err.println("Error: witness file not found: " + witnessPath);
@@ -91,8 +91,8 @@ public final class Main {
 			return;
 		}
 
-		if (!benchmarkDir.isDirectory()) {
-			System.err.println("Error: benchmark directory not found: " + benchmarkDirPath);
+		if (!benchmarkFile.exists()) {
+			System.err.println("Error: benchmark file not found: " + benchmarkPath);
 			System.out.println("Could not validate");
 			System.exit(0);
 			return;
@@ -107,8 +107,8 @@ public final class Main {
 					: null;
 
 			switch (model.type()) {
-			case VIOLATION -> ViolationValidator.validate(model, benchmarkDir, java8Exec, extraSourcesDir);
-			case CORRECTNESS -> CorrectnessValidator.validate(model, benchmarkDir);
+			case VIOLATION -> ViolationValidator.validate(model, benchmarkFile, java8Exec, extraSourcesDir);
+			case CORRECTNESS -> CorrectnessValidator.validate(model, benchmarkFile);
 			}
 
 		} catch (ValidationException e) {
@@ -180,11 +180,11 @@ public final class Main {
 				.required(false)
 				.build());
 
-		opts.addOption(Option.builder("d")
-				.longOpt("benchmark-dir")
+		opts.addOption(Option.builder("b")
+				.longOpt("benchmark")
 				.hasArg()
-				.argName("DIR")
-				.desc("Directory containing the Java benchmark sources and/or .class files")
+				.argName("BENCHMARK")
+				.desc("The Java benchmark yml")
 				.required(false)
 				.build());
 

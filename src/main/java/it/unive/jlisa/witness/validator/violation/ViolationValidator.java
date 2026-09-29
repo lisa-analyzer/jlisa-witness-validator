@@ -8,6 +8,7 @@ import it.unive.jlisa.witness.validator.parser.BenchmarkPropertiesParser;
 import it.unive.jlisa.witness.validator.parser.WitnessModel;
 import it.unive.jlisa.witness.validator.violation.EventLoop.ValidationResult;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public final class ViolationValidator {
 	 * Validates the violation witness and prints the verdict to {@code stdout}.
 	 *
 	 * @param model           the parsed witness model
-	 * @param benchmarkDir    directory containing the benchmark Java sources / classes
+	 * @param benchmarkFile    directory containing the benchmark Java sources / classes
 	 * @param java8Exec       path to the Java 8 executable, or {@code null} to use {@code PATH}
 	 * @param extraSourcesDir optional root directory of additional sources to compile alongside
 	 *                        the benchmark (e.g. the SV-COMP {@code common/} directory containing
@@ -49,14 +50,18 @@ public final class ViolationValidator {
 	 * @throws ValidationException propagated to {@code Main}, which maps it to
 	 *                             {@code Could not validate}
 	 */
-	public static void validate(WitnessModel model, File benchmarkDir, String java8Exec,
+	public static void validate(WitnessModel model, File benchmarkFile, String java8Exec,
 			File extraSourcesDir)
 			throws ValidationException {
 
 		ViolationPlan plan = model.violationPlan();
-
-		File benchFile = new File(benchmarkDir.getParent(), benchmarkDir.getName() + ".yml");
-		BenchmarkProperties properties = BenchmarkPropertiesParser.parse(benchFile);
+        BenchmarkProperties properties;
+        try {
+            properties = BenchmarkPropertiesParser.parse(benchmarkFile);
+        } catch (FileNotFoundException e) {
+            throw new ValidationException(e.getMessage());
+        }
+        File benchmarkDir = properties.directory();
 
 		ValidatorLogger.plan("Plan: {}", plan);
 		for (var ix : plan.interceptions()) {
