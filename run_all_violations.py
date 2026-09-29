@@ -10,13 +10,13 @@ top_level = {
 }
 
 env = os.environ.copy()
-env['JAVA_HOME'] = '/usr/lib/jvm/java-26-openjdk'
+#env['JAVA_HOME'] = '/usr/lib/jvm/java-26-openjdk'
 
 cmd = [
     "./build/install/jlisa-witness-validator/bin/jlisa-witness-validator",
     "--witness", 
     "svcomp-26/results-verified/jbmc.2025-12-09_16-35-43.files/TOP_LEVEL/BENCHMARK/witness.graphml",
-    "--benchmark-dir",
+    "--benchmark",
     "svcomp-26/benchmarks/java/", # jbmc-regression/CharSequenceBug
     "--extra-sources", 
     "svcomp-26/benchmarks/java/common"       , '--verbose' 
@@ -40,18 +40,20 @@ with open('svcomp-26/benchmark_tasks_1.csv') as f:
             continue
             local[2] = local[2].replace('TOP_LEVEL', top_level['NO_RUNTIME']) 
 
-        local[2] = local[2].replace('BENCHMARK', bench.split('/')[1]) 
-        local[4] = local[4] + bench.split('.')[0]
-       
-        out = subprocess.run(local, env=env, capture_output=True) 
+        bench_path = bench.split('/')
+        local[2] = local[2].replace('BENCHMARK', bench.split('/')[-1])
+        assert os.path.exists(local[2])
 
+        local[4] = local[4] + bench
+        assert os.path.exists(local[4])
+
+        out = subprocess.run(local, env=env, capture_output=True)
         result = out.stdout.decode().strip()
-
-        results[bench] = [result, out.stderr]
 
         if result == 'Witness Correct':
             print(0)
         else:
+            results[bench] = [result, out.stderr]
             print(1)
             print(bench)
             print(result)
