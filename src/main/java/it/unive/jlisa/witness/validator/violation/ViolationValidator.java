@@ -33,7 +33,7 @@ public final class ViolationValidator {
 
 	private static final String VERDICT_CORRECT = "Witness Correct";
 	private static final String VERDICT_SPURIOUS = "Witness Spurious";
-	private static final String VERDICT_UNKNOWN = "Could not validate";
+	private static final String VERDICT_ERROR = "Tool Error";
 
 	private ViolationValidator() {
 	}
@@ -48,7 +48,7 @@ public final class ViolationValidator {
 	 *                        the benchmark (e.g. the SV-COMP {@code common/} directory containing
 	 *                        {@code Verifier.java}); may be {@code null}
 	 * @throws ValidationException propagated to {@code Main}, which maps it to
-	 *                             {@code Could not validate}
+	 *                             {@code Tool Error}
 	 */
 	public static void validate(WitnessModel model, File benchmarkFile, String java8Exec,
 			File extraSourcesDir)
@@ -109,7 +109,7 @@ public final class ViolationValidator {
 		String verdict = switch (result) {
 		case CORRECT -> VERDICT_CORRECT;
 		case SPURIOUS -> VERDICT_SPURIOUS;
-		case COULD_NOT_VALIDATE -> VERDICT_UNKNOWN;
+		case ERROR -> VERDICT_ERROR;
 		};
 
 		ValidatorLogger.result(verdict);

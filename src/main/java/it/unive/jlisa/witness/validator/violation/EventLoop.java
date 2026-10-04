@@ -1,11 +1,6 @@
 package it.unive.jlisa.witness.validator.violation;
 
-import com.sun.jdi.AbsentInformationException;
-import com.sun.jdi.Location;
-import com.sun.jdi.ReferenceType;
-import com.sun.jdi.ThreadReference;
-import com.sun.jdi.VirtualMachine;
-import com.sun.jdi.VMDisconnectedException;
+import com.sun.jdi.*;
 import com.sun.jdi.event.BreakpointEvent;
 import com.sun.jdi.event.ClassPrepareEvent;
 import com.sun.jdi.event.Event;
@@ -47,14 +42,14 @@ import java.util.*;
  *       exception fires after all planned interceptions are consumed</li>
  *   <li>{@link ValidationResult#SPURIOUS} — avoid-point reached, or the VM exits normally
  *       without hitting the target</li>
- *   <li>{@link ValidationResult#COULD_NOT_VALIDATE} — timeout</li>
+ *   <li>{@link ValidationResult#ERROR} — timeout</li>
  * </ul>
  */
 public final class EventLoop {
 
 	/** Validation outcome returned by {@link #run()}. */
 	public enum ValidationResult {
-		CORRECT, SPURIOUS, COULD_NOT_VALIDATE
+		CORRECT, SPURIOUS, ERROR
 	}
 
 	/** Default timeout: 80 seconds (BenchExec limit is 90 s for violations). */
@@ -101,7 +96,7 @@ public final class EventLoop {
 			if (remaining <= 0) {
 				ValidatorLogger.result("Timeout after {}ms — could not validate", TIMEOUT_MS);
 				vm.dispose();
-				return ValidationResult.COULD_NOT_VALIDATE;
+				return handleErrorStatus();
 			}
 
 			EventSet eventSet;
@@ -110,11 +105,11 @@ public final class EventLoop {
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 				vm.dispose();
-				return ValidationResult.COULD_NOT_VALIDATE;
+				return handleErrorStatus();
 			} catch (VMDisconnectedException e) {
 				// VM terminated — it ran to completion without reaching the target
 				ValidatorLogger.event("VM disconnected");
-				return ValidationResult.SPURIOUS;
+				return handleErrorStatus();
 			}
 
 			if (eventSet == null) {
@@ -140,7 +135,7 @@ public final class EventLoop {
 			try {
 				eventSet.resume();
 			} catch (VMDisconnectedException e) {
-				return ValidationResult.SPURIOUS;
+				return handleErrorStatus();
 			}
 		}
 	}
@@ -160,7 +155,7 @@ public final class EventLoop {
 			}
 			String key = ix.className() + "." + ix.methodName();
 			ValidatorLogger.jdi("SETTING KEY: " + key);
-			interceptMap.computeIfAbsent(key, _ -> new ArrayDeque<>()).offer(ix);
+			interceptMap.computeIfAbsent(key, s -> new ArrayDeque<>()).offer(ix);
 		}
 
 		for (String key : interceptMap.keySet()) {
@@ -285,6 +280,11 @@ public final class EventLoop {
 		String methodName = event.method().name();
 		String key = className + "." + methodName;
 
+		Queue<Interception> interceptions = interceptMap.get(key);
+		if (interceptions == null) {
+			// method not handled
+			return null;
+		}
 		Interception ix = interceptMap.get(key).peek();
 
         if (ix != null && ix.count() == 1) {
@@ -360,18 +360,28 @@ public final class EventLoop {
 	}
 
 	private ValidationResult handleException(ExceptionEvent event) {
-		String exceptionClass = event.exception().type().name();
+		ObjectReference reference = event.exception();
+		String exceptionClass = reference.type().name();
 		Location loc = event.location();
 		ValidatorLogger.event("Exception: {} at {}:{}",
 				exceptionClass, safeSourceName(loc), loc.lineNumber());
 
 		// An uncaught exception after all planned interceptions is the property violation
 		// we were looking for → witness confirmed
-		if (exceptionClass.contains("AssertionError")
-				|| exceptionClass.contains("RuntimeException")
-				|| exceptionClass.contains("Error")) {
-			ValidatorLogger.event("Uncaught exception confirms violation — CORRECT");
+		if (exceptionClass.contains("AssertionError")) {
+			ValidatorLogger.event("Uncaught exception confirms violation - CORRECT");
 			return ValidationResult.CORRECT;
+		}
+
+		boolean isError = isRefInstance(reference, (ClassType) vm.classesByName("java.lang.Error").getFirst());
+		boolean isException = isRefInstance(reference, (ClassType) vm.classesByName("java.lang.Exception").getFirst());
+
+		if (isError) {
+			ValidatorLogger.event("Uncaught JVM ERROR - " + reference);
+			return ValidationResult.ERROR;
+		} else if (isException) {
+			ValidatorLogger.event("Uncaught Exception - " + reference);
+			return ValidationResult.SPURIOUS;
 		}
 
 		return null;
@@ -387,6 +397,27 @@ public final class EventLoop {
 				.map(Map.Entry::getKey)
 				.findFirst()
 				.ifPresent(req -> req.setEnabled(false));
+	}
+
+	private boolean isRefInstance(ObjectReference ref, ClassType errorType) {
+		ReferenceType type = ref.referenceType();
+
+		while (type instanceof ClassType classType) {
+			if (type.equals(errorType)) {
+				return true;
+			}
+
+			type = classType.superclass();
+		}
+
+		return false;
+	}
+
+	private ValidationResult handleErrorStatus() {
+		if (this.plan.interceptions().isEmpty()) {
+			return ValidationResult.SPURIOUS;
+		}
+		return ValidationResult.ERROR;
 	}
 
 	/**
