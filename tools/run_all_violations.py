@@ -22,9 +22,7 @@ cmd = [
     "svcomp-26/benchmarks/java/common"       , '--verbose' 
 ]
 
-with open('data/svcomp-26/benchmark_tasks_1.csv') as f:
-    reader = csv.reader(f) #, delimiter=' ', quotechar='|')
-
+def process_benchmarks():
     for i, row in enumerate(reader):
         if i == 0:
             continue
@@ -60,10 +58,13 @@ with open('data/svcomp-26/benchmark_tasks_1.csv') as f:
             print(out.stderr.decode("utf-8"))
             print()
 
+        with open('output/report.csv', 'a', newline="", encoding="utf-8") as o:
+            spamwriter = csv.writer(o)
+            for k, v in results.items():
+                r = [k] + v
+                spamwriter.writerow(r)
 
-
-with open('output/report.csv', 'w', newline="", encoding="utf-8") as o:
-    spamwriter = csv.writer(o)
-    for k, v in results.items():
-        r = [k] + v
-        spamwriter.writerow(r)
+with open('data/svcomp-26/benchmark_tasks_1.csv') as f:
+    reader = csv.reader(f) #, delimiter=' ', quotechar='|')
+    open('output/report.csv', 'w').close()
+    process_benchmarks()
