@@ -1,5 +1,5 @@
-import os
 import csv
+import os
 import subprocess
 
 results = {}
@@ -35,10 +35,10 @@ with open('svcomp-26/benchmark_tasks_1.csv') as f:
 
 
         if tp == 'valid-assert':
-            local[2] = local[2].replace('TOP_LEVEL', top_level['VALID_ASSERT']) 
+            local[2] = local[2].replace('TOP_LEVEL', top_level['VALID_ASSERT'])
         elif tp == 'no-runtime-exception':
             continue
-            local[2] = local[2].replace('TOP_LEVEL', top_level['NO_RUNTIME']) 
+            local[2] = local[2].replace('TOP_LEVEL', top_level['NO_RUNTIME'])
 
         bench_path = bench.split('/')
         local[2] = local[2].replace('BENCHMARK', bench.split('/')[-1])
@@ -53,16 +53,17 @@ with open('svcomp-26/benchmark_tasks_1.csv') as f:
         if result == 'Witness Correct':
             print(0)
         else:
-            results[bench] = [result, out.stderr]
+            results[bench] = [result, out.stderr.decode("utf-8")]
             print(1)
             print(bench)
             print(result)
-            print(out.stderr)
+            print(out.stderr.decode("utf-8"))
             print()
-        
 
 
-with open('report.csv', 'w') as o:
+
+with open('report.csv', 'w', newline="", encoding="utf-8") as o:
     spamwriter = csv.writer(o)
-    for r in results.items():
+    for k, v in results.items():
+        r = [k] + v
         spamwriter.writerow(r)
