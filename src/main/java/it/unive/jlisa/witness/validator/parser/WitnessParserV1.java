@@ -72,8 +72,9 @@ public final class WitnessParserV1 {
 		// First pass: accumulate interception counts so that repeated nondet calls
 		// (e.g. getBoolean() called 12 times, all returning true) get the correct count.
 		// Key = className|methodName|descriptor|value
-		Map<String, Integer> interceptCounts = new LinkedHashMap<>();
-		Map<String, String[]> interceptParts = new LinkedHashMap<>(); // key → [className, methodName, desc, value]
+		List<Interception> interceptions = new ArrayList<>();
+		//Map<String, Integer> interceptCounts = new LinkedHashMap<>();
+		//Map<String, String[]> interceptParts = new LinkedHashMap<>(); // key → [className, methodName, desc, value]
 		List<TargetPoint> targets = new ArrayList<>();
 		int droppedEdges = 0;
 
@@ -101,6 +102,7 @@ public final class WitnessParserV1 {
 					LOG.warn("[PARSE] Unparseable startline '{}' on violation-target edge", startLine);
 				}
 			}
+
 
 			if (assumption == null || assumption.isBlank()) {
 				continue;
@@ -134,9 +136,12 @@ public final class WitnessParserV1 {
 
 			if (ps.isVerifierNondet()) {
 				// Accumulate count for this (class, method, descriptor, value) tuple
-				String key = ps.className() + "|" + ps.methodName() + "|" + ps.descriptor() + "|" + value;
-				interceptCounts.merge(key, 1, Integer::sum);
-				interceptParts.putIfAbsent(key, new String[]{ps.className(), ps.methodName(), ps.descriptor(), value});
+				String key = ps.className() + "|" + ps.methodName() + "|" + ps.descriptor();// + "|" + value; fixme
+				interceptions.add(
+						new Interception(ps.className(), ps.methodName(), ps.descriptor(), value, 1)
+				);
+				//interceptCounts.merge(key, 1, Integer::sum);
+				//interceptParts.putIfAbsent(key, new String[]{ps.className(), ps.methodName(), ps.descriptor(), value});
 				LOG.debug("[PLAN] Accumulate interception: {}.{}  → return {}", ps.className(), ps.methodName(),
 						value);
 			} else {
@@ -148,12 +153,14 @@ public final class WitnessParserV1 {
 		}
 
 		// Build interception list with correct counts
-		List<Interception> interceptions = new ArrayList<>();
+		/*
+
 		for (Map.Entry<String, Integer> entry : interceptCounts.entrySet()) {
 			String[] parts = interceptParts.get(entry.getKey());
 			int count = entry.getValue();
 			interceptions.add(new Interception(parts[0], parts[1], parts[2], parts[3], count));
 		}
+		 */
 
 		LOG.debug("[PARSE] Loaded v1 witness: {} interception type(s), {} total fires, {} targets, {} dropped",
 				interceptions.size(),
