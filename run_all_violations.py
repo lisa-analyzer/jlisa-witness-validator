@@ -15,14 +15,14 @@ env = os.environ.copy()
 cmd = [
     "./build/install/jlisa-witness-validator/bin/jlisa-witness-validator",
     "--witness", 
-    "svcomp-26/results-verified/jbmc.2025-12-09_16-35-43.files/TOP_LEVEL/BENCHMARK/witness.graphml",
+    "data/svcomp-26/results-verified/jbmc.2025-12-09_16-35-43.files/TOP_LEVEL/BENCHMARK/witness.graphml",
     "--benchmark",
-    "svcomp-26/benchmarks/java/", # jbmc-regression/CharSequenceBug
+    "data/svcomp-26/benchmarks/java/", # jbmc-regression/CharSequenceBug
     "--extra-sources", 
     "svcomp-26/benchmarks/java/common"       , '--verbose' 
 ]
 
-with open('svcomp-26/benchmark_tasks_1.csv') as f:
+with open('data/svcomp-26/benchmark_tasks_1.csv') as f:
     reader = csv.reader(f) #, delimiter=' ', quotechar='|')
 
     for i, row in enumerate(reader):
@@ -62,7 +62,7 @@ with open('svcomp-26/benchmark_tasks_1.csv') as f:
 
 
 
-with open('report.csv', 'w', newline="", encoding="utf-8") as o:
+with open('output/report.csv', 'w', newline="", encoding="utf-8") as o:
     spamwriter = csv.writer(o)
     for k, v in results.items():
         r = [k] + v
