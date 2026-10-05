@@ -10,21 +10,23 @@ package it.unive.jlisa.witness.validator.model;
  * {@code InductionChecker} using jLISA's abstract-interpretation infrastructure.
  */
 public record CorrectnessInvariant(
-		String fileName,
-		int line,
-		String function,
-		InvariantType type,
-		String format,
-		String value) {
+        String fileName,
+        int line,
+        String function,
+        InvariantType type,
+        String format,
+        String value) {
 
-	/** The semantic category of the invariant. */
-	public enum InvariantType {
-		LOOP_INVARIANT,
-		LOCATION_INVARIANT
-	}
+    /**
+     * The semantic category of the invariant.
+     */
+    public enum InvariantType {
+        LOOP_INVARIANT,
+        LOCATION_INVARIANT
+    }
 
-	@Override
-	public String toString() {
-		return type + " @ " + fileName + ":" + line + " [" + function + "] = " + value;
-	}
+    @Override
+    public String toString() {
+        return type + " @ " + fileName + ":" + line + " [" + function + "] = " + value;
+    }
 }

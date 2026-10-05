@@ -16,44 +16,44 @@ import org.apache.logging.log4j.Logger;
  */
 public final class ValidatorLogger {
 
-	private static final Logger LOG = LogManager.getLogger(ValidatorLogger.class);
+    private static final Logger LOG = LogManager.getLogger(ValidatorLogger.class);
 
-	private ValidatorLogger() {
-	}
+    private ValidatorLogger() {
+    }
 
-	public static void parse(String fmt, Object... args) {
-		LOG.info("[PARSE]  " + fmt, args);
-	}
+    public static void parse(String fmt, Object... args) {
+        LOG.info("[PARSE]  " + fmt, args);
+    }
 
-	public static void filter(String fmt, Object... args) {
-		LOG.info("[FILTER] " + fmt, args);
-	}
+    public static void filter(String fmt, Object... args) {
+        LOG.info("[FILTER] " + fmt, args);
+    }
 
-	public static void plan(String fmt, Object... args) {
-		LOG.info("[PLAN]   " + fmt, args);
-	}
+    public static void plan(String fmt, Object... args) {
+        LOG.info("[PLAN]   " + fmt, args);
+    }
 
-	public static void jdi(String fmt, Object... args) {
-		LOG.info("[JDI]    " + fmt, args);
-	}
+    public static void jdi(String fmt, Object... args) {
+        LOG.info("[JDI]    " + fmt, args);
+    }
 
-	public static void event(String fmt, Object... args) {
-		LOG.info("[EVENT]  " + fmt, args);
-	}
+    public static void event(String fmt, Object... args) {
+        LOG.info("[EVENT]  " + fmt, args);
+    }
 
-	public static void result(String fmt, Object... args) {
-		LOG.info("[RESULT] " + fmt, args);
-	}
+    public static void result(String fmt, Object... args) {
+        LOG.info("[RESULT] " + fmt, args);
+    }
 
-	public static void warn(String fmt, Object... args) {
-		LOG.warn(fmt, args);
-	}
+    public static void warn(String fmt, Object... args) {
+        LOG.warn(fmt, args);
+    }
 
-	public static void debug(String fmt, Object... args) {
-		LOG.debug(fmt, args);
-	}
+    public static void debug(String fmt, Object... args) {
+        LOG.debug(fmt, args);
+    }
 
-	public static void error(String fmt, Object... args) {
-		LOG.error(fmt, args);
-	}
+    public static void error(String fmt, Object... args) {
+        LOG.error(fmt, args);
+    }
 }

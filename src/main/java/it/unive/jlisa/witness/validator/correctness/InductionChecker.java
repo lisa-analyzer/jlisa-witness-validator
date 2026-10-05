@@ -30,78 +30,86 @@ import it.unive.lisa.program.cfg.statement.Statement;
  */
 public final class InductionChecker {
 
-	/** Result of an induction condition check. */
-	public enum CheckResult {
-		/** The condition provably holds in the abstract domain. */
-		HOLDS,
-		/** The condition provably does not hold — the invariant is too weak or wrong. */
-		DOES_NOT_HOLD,
-		/** The abstract domain information is insufficient to determine the result. */
-		UNKNOWN
-	}
+    /**
+     * Result of an induction condition check.
+     */
+    public enum CheckResult {
+        /**
+         * The condition provably holds in the abstract domain.
+         */
+        HOLDS,
+        /**
+         * The condition provably does not hold — the invariant is too weak or wrong.
+         */
+        DOES_NOT_HOLD,
+        /**
+         * The abstract domain information is insufficient to determine the result.
+         */
+        UNKNOWN
+    }
 
-	private InductionChecker() {
-	}
+    private InductionChecker() {
+    }
 
-	/**
-	 * Checks whether the invariant holds at the loop head according to jLISA's computed
-	 * abstract state.
-	 *
-	 * <p><strong>TODO:</strong> implement using jLISA's per-variable interval query API.
-	 *
-	 * @param invariant parsed invariant to verify
-	 * @param loopHead  the loop-head {@link Statement} in the jLISA CFG
-	 * @return the check result
-	 */
-	public static CheckResult checkInitiation(ParsedInvariant invariant, Statement loopHead) {
-		ValidatorLogger.warn(
-				"[INDUCTION] Initiation check for '{}' at {} — pending jLISA abstract state API",
-				invariant, loopHead.getLocation());
-		logConstraints(invariant);
-		return CheckResult.UNKNOWN;
-	}
+    /**
+     * Checks whether the invariant holds at the loop head according to jLISA's computed
+     * abstract state.
+     *
+     * <p><strong>TODO:</strong> implement using jLISA's per-variable interval query API.
+     *
+     * @param invariant parsed invariant to verify
+     * @param loopHead  the loop-head {@link Statement} in the jLISA CFG
+     * @return the check result
+     */
+    public static CheckResult checkInitiation(ParsedInvariant invariant, Statement loopHead) {
+        ValidatorLogger.warn(
+                "[INDUCTION] Initiation check for '{}' at {} — pending jLISA abstract state API",
+                invariant, loopHead.getLocation());
+        logConstraints(invariant);
+        return CheckResult.UNKNOWN;
+    }
 
-	/**
-	 * Checks whether executing the loop body preserves the invariant.
-	 *
-	 * <p><strong>TODO:</strong> requires re-running jLISA analysis with the invariant as a
-	 * precondition at the loop head.
-	 *
-	 * @param invariant parsed invariant to verify
-	 * @param loopHead  the loop-head {@link Statement}
-	 * @return the check result
-	 */
-	public static CheckResult checkInductiveness(ParsedInvariant invariant, Statement loopHead) {
-		ValidatorLogger.warn(
-				"[INDUCTION] Inductiveness check for '{}' — not yet implemented",
-				invariant);
-		return CheckResult.UNKNOWN;
-	}
+    /**
+     * Checks whether executing the loop body preserves the invariant.
+     *
+     * <p><strong>TODO:</strong> requires re-running jLISA analysis with the invariant as a
+     * precondition at the loop head.
+     *
+     * @param invariant parsed invariant to verify
+     * @param loopHead  the loop-head {@link Statement}
+     * @return the check result
+     */
+    public static CheckResult checkInductiveness(ParsedInvariant invariant, Statement loopHead) {
+        ValidatorLogger.warn(
+                "[INDUCTION] Inductiveness check for '{}' — not yet implemented",
+                invariant);
+        return CheckResult.UNKNOWN;
+    }
 
-	/**
-	 * Checks whether the invariant at loop exit implies the property.
-	 *
-	 * <p><strong>TODO:</strong> requires computing the post-state of I ∧ ¬loop-condition
-	 * and verifying no error state is reachable.
-	 *
-	 * @param invariant parsed invariant to verify
-	 * @param loopHead  the loop-head {@link Statement}
-	 * @return the check result
-	 */
-	public static CheckResult checkSafety(ParsedInvariant invariant, Statement loopHead) {
-		ValidatorLogger.warn(
-				"[INDUCTION] Safety check for '{}' — not yet implemented",
-				invariant);
-		return CheckResult.UNKNOWN;
-	}
+    /**
+     * Checks whether the invariant at loop exit implies the property.
+     *
+     * <p><strong>TODO:</strong> requires computing the post-state of I ∧ ¬loop-condition
+     * and verifying no error state is reachable.
+     *
+     * @param invariant parsed invariant to verify
+     * @param loopHead  the loop-head {@link Statement}
+     * @return the check result
+     */
+    public static CheckResult checkSafety(ParsedInvariant invariant, Statement loopHead) {
+        ValidatorLogger.warn(
+                "[INDUCTION] Safety check for '{}' — not yet implemented",
+                invariant);
+        return CheckResult.UNKNOWN;
+    }
 
-	// ------------------------------------------------------------------
-	// private helpers
-	// ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // private helpers
+    // ------------------------------------------------------------------
 
-	private static void logConstraints(ParsedInvariant invariant) {
-		for (Constraint c : invariant.constraints()) {
-			ValidatorLogger.debug("[INDUCTION]   Constraint: {}", c);
-		}
-	}
+    private static void logConstraints(ParsedInvariant invariant) {
+        for (Constraint c : invariant.constraints()) {
+            ValidatorLogger.debug("[INDUCTION]   Constraint: {}", c);
+        }
+    }
 }

@@ -9,8 +9,8 @@ package it.unive.jlisa.witness.validator.model;
  */
 public record TargetPoint(String fileName, int line) {
 
-	@Override
-	public String toString() {
-		return fileName + ":" + line;
-	}
+    @Override
+    public String toString() {
+        return fileName + ":" + line;
+    }
 }

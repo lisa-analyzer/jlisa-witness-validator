@@ -9,8 +9,8 @@ package it.unive.jlisa.witness.validator.model;
  */
 public record BranchDecision(String fileName, int line, boolean direction) {
 
-	@Override
-	public String toString() {
-		return fileName + ":" + line + " → " + (direction ? "true (then)" : "false (else)");
-	}
+    @Override
+    public String toString() {
+        return fileName + ":" + line + " → " + (direction ? "true (then)" : "false (else)");
+    }
 }

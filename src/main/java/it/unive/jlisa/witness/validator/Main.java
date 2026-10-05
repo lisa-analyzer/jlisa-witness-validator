@@ -4,19 +4,14 @@ import it.unive.jlisa.witness.validator.correctness.CorrectnessValidator;
 import it.unive.jlisa.witness.validator.parser.WitnessModel;
 import it.unive.jlisa.witness.validator.parser.WitnessParserV1;
 import it.unive.jlisa.witness.validator.parser.WitnessParserV2;
-import it.unive.jlisa.witness.validator.violation.ValidatorLogger;
 import it.unive.jlisa.witness.validator.violation.ViolationValidator;
-import java.io.File;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
+
+import java.io.File;
 
 /**
  * Entry point for the jLISA Witness Validator.
@@ -38,180 +33,180 @@ import org.apache.logging.log4j.core.config.Configurator;
  */
 public final class Main {
 
-	private static final Logger LOG = LogManager.getLogger(Main.class);
+    private static final Logger LOG = LogManager.getLogger(Main.class);
 
-	private Main() {
-	}
+    private Main() {
+    }
 
-	public static void main(String[] args) {
-		Options options = buildOptions();
+    public static void main(String[] args) {
+        Options options = buildOptions();
 
-		CommandLine cmd;
-		try {
-			cmd = new DefaultParser().parse(options, args);
-		} catch (ParseException e) {
-			System.err.println("Error: " + e.getMessage());
-			new HelpFormatter().printHelp("jlisa-witness-validator", options);
-			System.out.println("Could not validate");
-			System.exit(0);
-			return;
-		}
+        CommandLine cmd;
+        try {
+            cmd = new DefaultParser().parse(options, args);
+        } catch (ParseException e) {
+            System.err.println("Error: " + e.getMessage());
+            new HelpFormatter().printHelp("jlisa-witness-validator", options);
+            System.out.println("Could not validate");
+            System.exit(0);
+            return;
+        }
 
-		if (cmd.hasOption("help")) {
-			new HelpFormatter().printHelp("jlisa-witness-validator", options);
-			System.exit(0);
-			return;
-		}
+        if (cmd.hasOption("help")) {
+            new HelpFormatter().printHelp("jlisa-witness-validator", options);
+            System.exit(0);
+            return;
+        }
 
-		// Elevate log level when --verbose is requested
-		if (cmd.hasOption("verbose")) {
-			Configurator.setRootLevel(Level.DEBUG);
-		}
+        // Elevate log level when --verbose is requested
+        if (cmd.hasOption("verbose")) {
+            Configurator.setRootLevel(Level.DEBUG);
+        }
 
-		String witnessPath = cmd.getOptionValue("witness");
-		String benchmarkPath = cmd.getOptionValue("benchmark");
-		String java8Exec = cmd.getOptionValue("java");
-		String extraSourcesPath = cmd.getOptionValue("extra-sources");
+        String witnessPath = cmd.getOptionValue("witness");
+        String benchmarkPath = cmd.getOptionValue("benchmark");
+        String java8Exec = cmd.getOptionValue("java");
+        String extraSourcesPath = cmd.getOptionValue("extra-sources");
 
-		if (witnessPath == null || benchmarkPath == null) {
-			System.err.println("Error: --witness and --benchmark are required.");
-			new HelpFormatter().printHelp("jlisa-witness-validator", options);
-			System.out.println("Could not validate");
-			System.exit(0);
-			return;
-		}
+        if (witnessPath == null || benchmarkPath == null) {
+            System.err.println("Error: --witness and --benchmark are required.");
+            new HelpFormatter().printHelp("jlisa-witness-validator", options);
+            System.out.println("Could not validate");
+            System.exit(0);
+            return;
+        }
 
-		File witnessFile = new File(witnessPath);
-		File benchmarkFile = new File(benchmarkPath);
+        File witnessFile = new File(witnessPath);
+        File benchmarkFile = new File(benchmarkPath);
 
-		if (!witnessFile.exists()) {
-			System.err.println("Error: witness file not found: " + witnessPath);
-			System.out.println("Could not validate");
-			System.exit(0);
-			return;
-		}
+        if (!witnessFile.exists()) {
+            System.err.println("Error: witness file not found: " + witnessPath);
+            System.out.println("Could not validate");
+            System.exit(0);
+            return;
+        }
 
-		if (!benchmarkFile.exists()) {
-			System.err.println("Error: benchmark file not found: " + benchmarkPath);
-			System.out.println("Could not validate");
-			System.exit(0);
-			return;
-		}
+        if (!benchmarkFile.exists()) {
+            System.err.println("Error: benchmark file not found: " + benchmarkPath);
+            System.out.println("Could not validate");
+            System.exit(0);
+            return;
+        }
 
-		try {
-			WitnessModel model = parseWitness(witnessFile);
-			LOG.info("Parsed witness: {}", model);
+        try {
+            WitnessModel model = parseWitness(witnessFile);
+            LOG.info("Parsed witness: {}", model);
 
-			File extraSourcesDir = (extraSourcesPath != null && !extraSourcesPath.isBlank())
-					? new File(extraSourcesPath)
-					: null;
+            File extraSourcesDir = (extraSourcesPath != null && !extraSourcesPath.isBlank())
+                    ? new File(extraSourcesPath)
+                    : null;
 
-			switch (model.type()) {
-			case VIOLATION -> ViolationValidator.validate(model, benchmarkFile, java8Exec, extraSourcesDir);
-			case CORRECTNESS -> CorrectnessValidator.validate(model, benchmarkFile);
-			}
+            switch (model.type()) {
+                case VIOLATION -> ViolationValidator.validate(model, benchmarkFile, java8Exec, extraSourcesDir);
+                case CORRECTNESS -> CorrectnessValidator.validate(model, benchmarkFile);
+            }
 
-		} catch (ValidationException e) {
-			LOG.error("Validation error: {}", e.getMessage(), e);
-			System.out.println("Could not validate");
-		} catch (Exception e) {
-			LOG.error("Unexpected error: {}", e.getMessage(), e);
-			System.out.println("Could not validate");
-		}
+        } catch (ValidationException e) {
+            LOG.error("Validation error: {}", e.getMessage(), e);
+            System.out.println("Could not validate");
+        } catch (Exception e) {
+            LOG.error("Unexpected error: {}", e.getMessage(), e);
+            System.out.println("Could not validate");
+        }
 
-		System.exit(0);
-	}
+        System.exit(0);
+    }
 
-	// ------------------------------------------------------------------
-	// witness parsing — format detection by extension and content
-	// ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // witness parsing — format detection by extension and content
+    // ------------------------------------------------------------------
 
-	/**
-	 * Selects the appropriate parser based on the witness file extension.
-	 * <ul>
-	 *   <li>{@code .graphml} → {@link WitnessParserV1}</li>
-	 *   <li>{@code .yaml} / {@code .yml} → {@link WitnessParserV2}</li>
-	 * </ul>
-	 */
-	private static WitnessModel parseWitness(File witnessFile) throws ValidationException {
-		String name = witnessFile.getName().toLowerCase();
-		if (name.endsWith(".graphml") || name.endsWith(".xml")) {
-			return WitnessParserV1.parse(witnessFile);
-		}
-		if (name.endsWith(".yaml") || name.endsWith(".yml")) {
-			return WitnessParserV2.parse(witnessFile);
-		}
-		// Unknown extension — peek at the first line to decide
-		try {
-			String firstLine = java.nio.file.Files.lines(witnessFile.toPath())
-					.filter(l -> !l.isBlank())
-					.findFirst()
-					.orElse("");
-			if (firstLine.contains("<graphml") || firstLine.startsWith("<?xml")) {
-				return WitnessParserV1.parse(witnessFile);
-			}
-			if (firstLine.startsWith("format_version") || firstLine.startsWith("---")) {
-				return WitnessParserV2.parse(witnessFile);
-			}
-		} catch (java.io.IOException e) {
-			throw new ValidationException("Cannot read witness file: " + e.getMessage(), e);
-		}
-		throw new ValidationException(
-				"Cannot determine witness format from extension or content of: " + witnessFile.getName());
-	}
+    /**
+     * Selects the appropriate parser based on the witness file extension.
+     * <ul>
+     *   <li>{@code .graphml} → {@link WitnessParserV1}</li>
+     *   <li>{@code .yaml} / {@code .yml} → {@link WitnessParserV2}</li>
+     * </ul>
+     */
+    private static WitnessModel parseWitness(File witnessFile) throws ValidationException {
+        String name = witnessFile.getName().toLowerCase();
+        if (name.endsWith(".graphml") || name.endsWith(".xml")) {
+            return WitnessParserV1.parse(witnessFile);
+        }
+        if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+            return WitnessParserV2.parse(witnessFile);
+        }
+        // Unknown extension — peek at the first line to decide
+        try {
+            String firstLine = java.nio.file.Files.lines(witnessFile.toPath())
+                    .filter(l -> !l.isBlank())
+                    .findFirst()
+                    .orElse("");
+            if (firstLine.contains("<graphml") || firstLine.startsWith("<?xml")) {
+                return WitnessParserV1.parse(witnessFile);
+            }
+            if (firstLine.startsWith("format_version") || firstLine.startsWith("---")) {
+                return WitnessParserV2.parse(witnessFile);
+            }
+        } catch (java.io.IOException e) {
+            throw new ValidationException("Cannot read witness file: " + e.getMessage(), e);
+        }
+        throw new ValidationException(
+                "Cannot determine witness format from extension or content of: " + witnessFile.getName());
+    }
 
-	// ------------------------------------------------------------------
-	// CLI definition
-	// ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // CLI definition
+    // ------------------------------------------------------------------
 
-	private static Options buildOptions() {
-		Options opts = new Options();
+    private static Options buildOptions() {
+        Options opts = new Options();
 
-		opts.addOption(Option.builder("h")
-				.longOpt("help")
-				.desc("Print this help message and exit")
-				.build());
+        opts.addOption(Option.builder("h")
+                .longOpt("help")
+                .desc("Print this help message and exit")
+                .build());
 
-		opts.addOption(Option.builder("w")
-				.longOpt("witness")
-				.hasArg()
-				.argName("FILE")
-				.desc("Witness file to validate (.graphml for v1, .yaml for v2)")
-				.required(false)
-				.build());
+        opts.addOption(Option.builder("w")
+                .longOpt("witness")
+                .hasArg()
+                .argName("FILE")
+                .desc("Witness file to validate (.graphml for v1, .yaml for v2)")
+                .required(false)
+                .build());
 
-		opts.addOption(Option.builder("b")
-				.longOpt("benchmark")
-				.hasArg()
-				.argName("BENCHMARK")
-				.desc("The Java benchmark yml")
-				.required(false)
-				.build());
+        opts.addOption(Option.builder("b")
+                .longOpt("benchmark")
+                .hasArg()
+                .argName("BENCHMARK")
+                .desc("The Java benchmark yml")
+                .required(false)
+                .build());
 
-		opts.addOption(Option.builder("j")
-				.longOpt("java")
-				.hasArg()
-				.argName("PATH")
-				.desc("Path to the Java executable used to run benchmarks (default: java on PATH). "
-						+ "For SV-COMP benchmarks compiled to Java 8, pass a Java 8 binary here.")
-				.required(false)
-				.build());
+        opts.addOption(Option.builder("j")
+                .longOpt("java")
+                .hasArg()
+                .argName("PATH")
+                .desc("Path to the Java executable used to run benchmarks (default: java on PATH). "
+                        + "For SV-COMP benchmarks compiled to Java 8, pass a Java 8 binary here.")
+                .required(false)
+                .build());
 
-		opts.addOption(Option.builder("s")
-				.longOpt("extra-sources")
-				.hasArg()
-				.argName("DIR")
-				.desc("Root directory of additional Java sources to compile alongside the benchmark "
-						+ "(e.g. the SV-COMP common/ directory containing Verifier.java). "
-						+ "Sources are collected recursively and compiled into the benchmark output dir.")
-				.required(false)
-				.build());
+        opts.addOption(Option.builder("s")
+                .longOpt("extra-sources")
+                .hasArg()
+                .argName("DIR")
+                .desc("Root directory of additional Java sources to compile alongside the benchmark "
+                        + "(e.g. the SV-COMP common/ directory containing Verifier.java). "
+                        + "Sources are collected recursively and compiled into the benchmark output dir.")
+                .required(false)
+                .build());
 
-		opts.addOption(Option.builder("v")
-				.longOpt("verbose")
-				.desc("Enable verbose debug logging to stderr (default: off for BenchExec runs)")
-				.build());
+        opts.addOption(Option.builder("v")
+                .longOpt("verbose")
+                .desc("Enable verbose debug logging to stderr (default: off for BenchExec runs)")
+                .build());
 
-		return opts;
-	}
+        return opts;
+    }
 }

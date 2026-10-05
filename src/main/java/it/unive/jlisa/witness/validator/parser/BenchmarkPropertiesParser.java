@@ -1,8 +1,6 @@
 package it.unive.jlisa.witness.validator.parser;
 
-import it.unive.jlisa.witness.validator.ValidationException;
 import it.unive.jlisa.witness.validator.model.BenchmarkProperties;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -46,7 +44,7 @@ public final class BenchmarkPropertiesParser {
     public static BenchmarkProperties parse(File file) throws FileNotFoundException {
         Map<String, Object> properties = loadYaml(file);
         List<File> inputFiles = new ArrayList<>();
-        if (properties.get("input_files") instanceof List){
+        if (properties.get("input_files") instanceof List) {
             inputFiles.addAll(
                     ((List<?>) properties.get("input_files")).stream()
                             .map((f) -> {
