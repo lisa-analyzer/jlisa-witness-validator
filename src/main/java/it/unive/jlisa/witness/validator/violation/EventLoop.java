@@ -103,20 +103,18 @@ public final class EventLoop {
                 continue; // poll timeout — check overall deadline on next iteration
             }
 
-            ValidationResult result = null;
+            Optional<ValidationResult> result;
             for (Event event : eventSet) {
                 result = processEvent(event);
-                if (result != null) {
-                    break;
-                }
-            }
 
-            if (result != null) {
-                try {
-                    vm.dispose();
-                } catch (Exception ignored) {
+                if (result.isPresent()) {
+                    try {
+                        vm.dispose();
+                    } catch (Exception ignored) {
+                        break;
+                    }
+                    return result.get();
                 }
-                return result;
             }
 
             try {
@@ -195,10 +193,10 @@ public final class EventLoop {
     // event processing
     // ------------------------------------------------------------------
 
-    private ValidationResult processEvent(Event event) {
+    private Optional<ValidationResult> processEvent(Event event) {
         if (event instanceof VMStartEvent) {
             ValidatorLogger.jdi("VMStartEvent — execution about to begin");
-            return null;
+            return Optional.empty();
         }
 
         if (event instanceof ClassPrepareEvent cpe) {
@@ -219,13 +217,13 @@ public final class EventLoop {
 
         if (event instanceof VMDeathEvent) {
             ValidatorLogger.event("VMDeathEvent — program exited without hitting target");
-            return ValidationResult.SPURIOUS;
+            return Optional.of(ValidationResult.SPURIOUS);
         }
 
-        return null;
+        return Optional.empty();
     }
 
-    private ValidationResult handleClassPrepare(ClassPrepareEvent event) {
+    private Optional<ValidationResult> handleClassPrepare(ClassPrepareEvent event) {
         ReferenceType refType = event.referenceType();
         String className = refType.name();
         ValidatorLogger.jdi("ClassPrepare: {}", className);
@@ -240,7 +238,7 @@ public final class EventLoop {
                 installBreakpoint(refType, pb, fileName);
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     private void installBreakpoint(ReferenceType refType, PendingBreakpoint pb, String fileName) {
@@ -262,7 +260,7 @@ public final class EventLoop {
         }
     }
 
-    private ValidationResult handleMethodEntry(MethodEntryEvent event) {
+    private Optional<ValidationResult> handleMethodEntry(MethodEntryEvent event) {
         String className = event.method().declaringType().name();
         String methodName = event.method().name();
         String key = className + "." + methodName;
@@ -270,7 +268,7 @@ public final class EventLoop {
         Queue<Interception> interceptions = interceptMap.get(key);
         if (interceptions == null) {
             // method not handled
-            return null;
+            return Optional.empty();
         }
         Interception ix = interceptMap.get(key).peek();
 
@@ -278,7 +276,7 @@ public final class EventLoop {
             interceptMap.get(key).remove();
         }
         if (ix == null || !ix.hasRemaining()) {
-            return null; // not an interception target, or already exhausted
+            return Optional.empty(); // not an interception target, or already exhausted
         }
 
         ValidatorLogger.event("MethodEntry: {}.{}() — forcing return value: {}",
@@ -289,7 +287,7 @@ public final class EventLoop {
         } catch (Exception e) {
             ValidatorLogger.warn("[EVENT]  forceEarlyReturn failed: {} — letting method run normally",
                     e.getMessage());
-            return null;
+            return Optional.empty();
         }
 
         int remaining = ix.decrementAndGet();
@@ -300,10 +298,10 @@ public final class EventLoop {
                     className, methodName);
         }
 
-        return null;
+        return Optional.empty();
     }
 
-    private ValidationResult handleBreakpoint(BreakpointEvent event) {
+    private Optional<ValidationResult> handleBreakpoint(BreakpointEvent event) {
         Location loc = event.location();
         String sourceName = safeSourceName(loc);
         int line = loc.lineNumber();
@@ -318,11 +316,11 @@ public final class EventLoop {
             switch (pb.type()) {
                 case TARGET -> {
                     ValidatorLogger.event("Breakpoint: {}:{} — TARGET REACHED", sourceName, line);
-                    return ValidationResult.CORRECT;
+                    return Optional.of(ValidationResult.CORRECT);
                 }
                 case AVOID -> {
                     ValidatorLogger.event("Breakpoint: {}:{} — AVOID POINT REACHED — spurious", sourceName, line);
-                    return ValidationResult.SPURIOUS;
+                    return Optional.of(ValidationResult.SPURIOUS);
                 }
                 case BRANCH -> {
                     BranchDecision bd = (BranchDecision) planItem;
@@ -331,7 +329,7 @@ public final class EventLoop {
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     private void handleBranchDecision(ThreadReference thread, BranchDecision bd, String sourceName, int line) {
@@ -346,7 +344,7 @@ public final class EventLoop {
         // eventually report "Witness Spurious".
     }
 
-    private ValidationResult handleException(ExceptionEvent event) {
+    private Optional<ValidationResult> handleException(ExceptionEvent event) {
         ObjectReference reference = event.exception();
         String exceptionClass = reference.type().name();
         Location loc = event.location();
@@ -357,7 +355,7 @@ public final class EventLoop {
         // we were looking for → witness confirmed
         if (exceptionClass.contains("AssertionError")) {
             ValidatorLogger.event("Uncaught exception confirms violation - CORRECT");
-            return ValidationResult.CORRECT;
+            return Optional.of(ValidationResult.CORRECT);
         }
 
         boolean isError = isRefInstance(reference, (ClassType) vm.classesByName("java.lang.Error").getFirst());
@@ -365,13 +363,13 @@ public final class EventLoop {
 
         if (isError) {
             ValidatorLogger.event("Uncaught JVM ERROR - " + reference);
-            return ValidationResult.ERROR;
+            return Optional.of(ValidationResult.ERROR);
         } else if (isException) {
             ValidatorLogger.event("Uncaught Exception - " + reference);
-            return ValidationResult.SPURIOUS;
+            return Optional.of(ValidationResult.SPURIOUS);
         }
 
-        return null;
+        return Optional.empty();
     }
 
     // ------------------------------------------------------------------
