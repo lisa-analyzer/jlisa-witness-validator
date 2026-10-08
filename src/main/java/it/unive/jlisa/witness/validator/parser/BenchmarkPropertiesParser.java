@@ -58,11 +58,12 @@ public final class BenchmarkPropertiesParser {
             );
         }
 
-        File benchDir = inputFiles.getLast();
-
-        if (!file.getName().contains(benchDir.getName())) {
-            throw new FileNotFoundException("Benchmark directory not found, " + file.getName() + " expected");
+        List<File> benchCandidates = inputFiles.stream().filter(str -> file.getName().contains(str.getName())).toList();
+        if (benchCandidates.size() != 1) {
+            throw new FileNotFoundException("Benchmark directory not found, " + file.getName() + " expected, " + benchCandidates.size() + " candidates found");
         }
+
+        File benchDir = benchCandidates.getFirst();
 
         return new BenchmarkProperties(inputFiles, benchDir);
     }
