@@ -10,7 +10,7 @@ output_path = 'output/report-full.csv'
 smoke_run = True
 
 env = os.environ.copy()
-binary_path = "./build/install/jlisa-witness-validator/bin/jlisa-witness-validator",
+binary_path = Path("./build/install/jlisa-witness-validator/bin/jlisa-witness-validator")
 #env['JAVA_HOME'] = '/usr/lib/jvm/java-26-openjdk'
 
 df = pd.read_csv(benchmark_path)
@@ -27,7 +27,7 @@ class Bench:
     tool: str
     name: str
     group: str
-    path: str
+    path: Path
     properties: str
     expectedVerdict: str
     status: str
@@ -37,7 +37,7 @@ class Bench:
         self.tool = bench['tool']
         self.name = bench['name']
         self.group = bench['group']
-        self.path = bench['path']
+        self.path = Path(bench['path'])
         self.properties = bench['properties']
         self.expectedVerdict = bench['expectedVerdict']
         self.status = bench['status']
@@ -71,7 +71,7 @@ class Cmd:
     
     def _build_benchmark(self) -> str:
         base = "data/svcomp-26/benchmarks/java"
-        base = Path(base) / Path(*self.path.parts[3:])
+        base = Path(base) / Path(*self.benchmark.path.parts[3:])
     
         print(base)
         assert os.path.exists(base)
@@ -99,16 +99,17 @@ class ResultWriter:
         self.path = path
     
     def initialize(self):
-        open(self.path, 'w').close()
+        with open(self.path, 'w', newline="", encoding="utf-8") as o:
+            spamwriter = csv.writer(o)
+            spamwriter.writerow(['tool', 'name', 'group', 'path', 'properties',
+                'expectedVerdict', 'status', 'category', 'validation result', 'validation log'
+            ])
         
-    def write_result(self, bench, result, log):
+    def write_result(self, bench: Bench, result, log):
+        out = [bench.tool, bench.name, bench.group, bench.path, bench.properties, bench.expectedVerdict, bench.status, bench.category, result, log]
+        
         with open(self.path, 'a', newline="", encoding="utf-8") as o:
             spamwriter = csv.writer(o)
-            print(bench)
-            out = bench.copy()
-            out['validation result'] = result
-            out['validation log'] = log
-            
             spamwriter.writerow(out)
 
 
@@ -137,8 +138,7 @@ def process_bench(index, bench):
     
     print()
     
-    writer.write_result(bench, result, log)
-
+    writer.write_result(b, result, log)
 
 tools = df['tool'].unique()
 
