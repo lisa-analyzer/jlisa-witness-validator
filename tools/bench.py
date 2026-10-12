@@ -1,8 +1,9 @@
-import os
 import csv
 import subprocess
 from dataclasses import dataclass
+import os
 import pandas as pd
+import subprocess
 from pathlib import Path
 
 benchmark_path = 'data/svcomp-26/benchmark.csv'
