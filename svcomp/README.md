@@ -6,6 +6,10 @@ It runs the program under the Java Debug Interface and makes the
 
 Project: https://github.com/lisa-analyzer/jlisa-witness-validator
 
+For SV-COMP, the validator now ships inside the JLiSA archive, as `jlisa validate`
+(built by `build_jlisa.sh --jlisa-wit-dir` in https://github.com/lisa-analyzer/sv-comp).
+This standalone `jlisa-wit` archive remains for development.
+
 ## Contents
 
 - `jlisa-wit`: a single executable, the Python wrapper and the Java validator
