@@ -2,16 +2,13 @@ package it.unive.jlisa.witness.validator.violation;
 
 import it.unive.jlisa.witness.validator.RunSummary;
 import it.unive.jlisa.witness.validator.ValidationException;
-import it.unive.jlisa.witness.validator.model.BenchmarkProperties;
 import it.unive.jlisa.witness.validator.model.Property;
-import it.unive.jlisa.witness.validator.parser.BenchmarkPropertiesParser;
+import it.unive.jlisa.witness.validator.model.TaskSources;
 import it.unive.jlisa.witness.validator.search.InputSearch;
 import it.unive.jlisa.witness.validator.search.Trace;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,22 +34,13 @@ public final class BugFinder {
      * @param timeLimitMillis time for the search, from the start of this call
      * @param witness         where to write the witness of the violation found, or null for no witness
      */
-    public static void find(Property property, File benchmarkFile, String java8Exec, File extraSourcesDir,
-                            long timeLimitMillis, ViolationWitnessWriter.Request witness) throws ValidationException {
+    public static void find(Property property, TaskSources task, String java8Exec, long timeLimitMillis,
+                            ViolationWitnessWriter.Request witness) throws ValidationException {
         long deadline = System.currentTimeMillis() + timeLimitMillis;
-        BenchmarkProperties properties;
-        try {
-            properties = BenchmarkPropertiesParser.parse(benchmarkFile);
-        } catch (FileNotFoundException e) {
-            throw new ValidationException(e.getMessage());
-        }
-        File benchmarkDir = properties.directory();
-        List<File> sources = new ArrayList<>();
-        sources.add(extraSourcesDir);
-        sources.addAll(properties.inputFiles());
-        JdiLauncher.compileIfNeeded(benchmarkDir, benchmarkDir, null, sources);
-        String classpath = ViolationValidator.buildClasspath(benchmarkDir);
-        String mainClass = ViolationValidator.findMainClass(benchmarkDir);
+        List<File> sources = task.inputs();
+        JdiLauncher.compileIfNeeded(task.benchmark(), task.classesDir(), null, sources);
+        String classpath = ViolationValidator.buildClasspath(task.classesDir());
+        String mainClass = ViolationValidator.findMainClass(task.benchmark());
 
         InputSearch search;
         try {
