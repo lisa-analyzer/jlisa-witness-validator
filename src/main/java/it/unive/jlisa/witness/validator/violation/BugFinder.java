@@ -6,6 +6,7 @@ import it.unive.jlisa.witness.validator.model.BenchmarkProperties;
 import it.unive.jlisa.witness.validator.model.Property;
 import it.unive.jlisa.witness.validator.parser.BenchmarkPropertiesParser;
 import it.unive.jlisa.witness.validator.search.InputSearch;
+import it.unive.jlisa.witness.validator.search.Trace;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -34,9 +35,10 @@ public final class BugFinder {
 
     /**
      * @param timeLimitMillis time for the search, from the start of this call
+     * @param witness         where to write the witness of the violation found, or null for no witness
      */
     public static void find(Property property, File benchmarkFile, String java8Exec, File extraSourcesDir,
-                            long timeLimitMillis) throws ValidationException {
+                            long timeLimitMillis, ViolationWitnessWriter.Request witness) throws ValidationException {
         long deadline = System.currentTimeMillis() + timeLimitMillis;
         BenchmarkProperties properties;
         try {
@@ -73,7 +75,17 @@ public final class BugFinder {
             print(VERDICT_UNKNOWN);
             return;
         }
-        RunSummary.reason("violation-found", f.detail() + " with values " + f.values() + " (search run " + f.runs() + ")");
+        String witnessNote = "";
+        if (witness != null) {
+            Optional<Trace> trace = search.trace(f.values(), deadline);
+            ValidatorLogger.debug("Trace of the violation: {}", trace);
+            String noWitness = trace.isEmpty()
+                    ? "the run with these values cannot be traced again"
+                    : ViolationWitnessWriter.write(witness, trace.get(), property, new WitnessLocations(sources));
+            witnessNote = noWitness == null ? "; witness written to " + witness.output() : "; no witness: " + noWitness;
+        }
+        RunSummary.reason("violation-found", f.detail() + " with values " + f.values() + " (search run " + f.runs() + ")"
+                + witnessNote);
         RunSummary.print("found");
         print(VERDICT_FOUND);
     }

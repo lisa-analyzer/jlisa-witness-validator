@@ -6,6 +6,7 @@ import it.unive.jlisa.witness.validator.parser.WitnessModel;
 import it.unive.jlisa.witness.validator.parser.WitnessParserV1;
 import it.unive.jlisa.witness.validator.parser.WitnessParserV2;
 import it.unive.jlisa.witness.validator.violation.BugFinder;
+import it.unive.jlisa.witness.validator.violation.ViolationWitnessWriter;
 import it.unive.jlisa.witness.validator.violation.ViolationValidator;
 import org.apache.commons.cli.*;
 import org.apache.logging.log4j.Level;
@@ -14,6 +15,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import java.io.File;
+import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * Entry point for the jLISA Witness Validator.
@@ -24,6 +27,7 @@ import java.io.File;
  *                         [--input-search] [--java <path>] [--verbose]
  * jlisa-witness-validator --find-bug --benchmark <task.yml> --property assert|runtime
  *                         [--time-limit <seconds>] [--java <path>] [--verbose]
+ *                         [--witness-output <file> --task-inputs <paths...> --task-property <prp>]
  * }</pre>
  *
  * <p>The property is given explicitly; it is never derived from the task file.
@@ -84,7 +88,19 @@ public final class Main {
         String extraSourcesPath = cmd.getOptionValue("extra-sources");
 
         if (cmd.hasOption("find-bug")) {
-            findBug(benchmarkPath, propertyName, java8Exec, extraSourcesPath, cmd.getOptionValue("time-limit", "60"));
+            ViolationWitnessWriter.Request witness = null;
+            if (cmd.hasOption("witness-output")) {
+                if (!cmd.hasOption("task-inputs") || !cmd.hasOption("task-property")) {
+                    System.err.println("Error: --witness-output needs --task-inputs and --task-property.");
+                    RunSummary.couldNotValidate("usage", "--witness-output needs --task-inputs and --task-property");
+                    System.exit(0);
+                    return;
+                }
+                witness = new ViolationWitnessWriter.Request(Paths.get(cmd.getOptionValue("witness-output")),
+                        List.of(cmd.getOptionValues("task-inputs")), cmd.getOptionValue("task-property"));
+            }
+            findBug(benchmarkPath, propertyName, java8Exec, extraSourcesPath, cmd.getOptionValue("time-limit", "60"),
+                    witness);
             System.exit(0);
             return;
         }
@@ -142,7 +158,7 @@ public final class Main {
 
     /** Bug-finding mode: no witness; looks for a run that violates the property (see {@link BugFinder}). */
     private static void findBug(String benchmarkPath, String propertyName, String java8Exec,
-                                String extraSourcesPath, String timeLimitSeconds) {
+                                String extraSourcesPath, String timeLimitSeconds, ViolationWitnessWriter.Request witness) {
         if (benchmarkPath == null || propertyName == null) {
             System.err.println("Error: --find-bug needs --benchmark and --property.");
             RunSummary.couldNotValidate("usage", "--find-bug needs --benchmark and --property");
@@ -158,7 +174,7 @@ public final class Main {
             File extraSourcesDir = (extraSourcesPath != null && !extraSourcesPath.isBlank())
                     ? new File(extraSourcesPath)
                     : null;
-            BugFinder.find(Property.fromName(propertyName), benchmarkFile, java8Exec, extraSourcesDir, millis);
+            BugFinder.find(Property.fromName(propertyName), benchmarkFile, java8Exec, extraSourcesDir, millis, witness);
         } catch (NumberFormatException e) {
             RunSummary.couldNotValidate("usage", "--time-limit is not a number: " + timeLimitSeconds);
         } catch (ValidationException e) {
@@ -281,6 +297,29 @@ public final class Main {
                 .hasArg()
                 .argName("SECONDS")
                 .desc("Time for the bug-finding search (default 60)")
+                .build());
+
+        opts.addOption(Option.builder()
+                .longOpt("witness-output")
+                .hasArg()
+                .argName("FILE")
+                .desc("Bug-finding mode: write the violation witness of the violation found to this file "
+                        + "(needs --task-inputs and --task-property)")
+                .build());
+
+        opts.addOption(Option.builder()
+                .longOpt("task-inputs")
+                .hasArgs()
+                .argName("PATHS")
+                .desc("Bug-finding mode: the input files and directories of the task, as given to the tool "
+                        + "(the files of the witness)")
+                .build());
+
+        opts.addOption(Option.builder()
+                .longOpt("task-property")
+                .hasArg()
+                .argName("PRP")
+                .desc("Bug-finding mode: the property file of the task (the specification of the witness)")
                 .build());
 
         opts.addOption(Option.builder("v")
