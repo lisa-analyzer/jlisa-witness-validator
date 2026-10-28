@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,6 +50,29 @@ public final class JdiLauncher {
 
     /** The process of each target JVM (a JVM that connects to the validator has no {@link VirtualMachine#process()}). */
     private static final Map<VirtualMachine, Process> PROCESSES = new ConcurrentHashMap<>();
+
+    /**
+     * The working directory of each target JVM launched and not yet cleaned up: when the validator exits
+     * first (e.g., right after its verdict), the target JVMs still running are killed and the directories
+     * deleted here, since the callbacks on their exit would not run.
+     */
+    private static final Map<Process, Path> WORKING_DIRS = new ConcurrentHashMap<>();
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            for (Map.Entry<Process, Path> entry : WORKING_DIRS.entrySet()) {
+                Process process = entry.getKey();
+                process.destroyForcibly();
+                try {
+                    // a JVM still writing in its directory would keep some files there
+                    process.waitFor(1, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                delete(entry.getValue());
+            }
+        }));
+    }
 
     private JdiLauncher() {
     }
@@ -124,10 +148,13 @@ public final class JdiLauncher {
                     .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                     .redirectError(ProcessBuilder.Redirect.DISCARD)
                     .start();
+            WORKING_DIRS.put(process, workingDir);
             // a target JVM that exits before connecting must not leave accept waiting
+            Process started = process;
             process.onExit().thenRun(() -> {
                 stopListening(connector, args);
                 delete(workingDir);
+                WORKING_DIRS.remove(started);
             });
 
             VirtualMachine vm = connector.accept(args);
