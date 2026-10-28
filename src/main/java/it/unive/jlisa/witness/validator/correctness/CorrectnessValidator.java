@@ -13,7 +13,6 @@ import it.unive.jlisa.witness.validator.model.CorrectnessInvariant;
 import it.unive.jlisa.witness.validator.parser.WitnessModel;
 import it.unive.jlisa.witness.validator.violation.ValidatorLogger;
 import it.unive.lisa.LiSA;
-import it.unive.lisa.analysis.Reachability;
 import it.unive.lisa.analysis.SimpleAbstractDomain;
 import it.unive.lisa.conf.LiSAConfiguration;
 import it.unive.lisa.interprocedural.ReturnTopPolicy;
@@ -178,10 +177,10 @@ public final class CorrectnessValidator {
         conf.callGraph = new JavaRTACallGraph();
         conf.openCallPolicy = ReturnTopPolicy.INSTANCE;
         conf.semanticChecks.add(new AssertChecker<>());
-        conf.analysis = new Reachability<>(new SimpleAbstractDomain<>(
+        conf.analysis = new SimpleAbstractDomain<>(
                 new JavaFieldSensitivePointBasedHeap(),
                 new ConstantPropagationWithIntervals(),
-                new JavaInferredTypes()));
+                new JavaInferredTypes());
 
         try {
             ValidatorLogger.jdi("[CORRECTNESS] Running LiSA analysis (workdir={})", workdir);

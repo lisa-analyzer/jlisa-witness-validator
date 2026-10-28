@@ -139,12 +139,7 @@ final class SearchRun {
         try {
             r.loop(vm, assignment, colored, System.currentTimeMillis() + timeoutMillis);
         } finally {
-            try {
-                vm.exit(1);
-            } catch (Exception ignored) {
-                // already gone
-            }
-            vm.process().destroyForcibly();
+            JdiLauncher.stop(vm);
         }
         return r;
     }
