@@ -35,7 +35,7 @@ import java.util.Optional;
  *   <li>Map the {@link ValidationResult} to a BenchExec verdict string and print to stdout</li>
  * </ol>
  */
-public final class ViolationValidator {
+public final class ViolationValidatorV1 {
 
     private static final String VERDICT_CORRECT = "Witness Correct";
     private static final String VERDICT_SPURIOUS = "Witness Spurious";
@@ -48,7 +48,7 @@ public final class ViolationValidator {
      */
     private static final long TIME_BUDGET_MILLIS = 75_000;
 
-    private ViolationValidator() {
+    private ViolationValidatorV1() {
     }
 
     /**

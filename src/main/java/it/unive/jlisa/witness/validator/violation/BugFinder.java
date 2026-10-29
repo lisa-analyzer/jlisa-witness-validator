@@ -49,8 +49,8 @@ public final class BugFinder {
         sources.add(extraSourcesDir);
         sources.addAll(properties.inputFiles());
         JdiLauncher.compileIfNeeded(benchmarkDir, benchmarkDir, null, sources);
-        String classpath = ViolationValidator.buildClasspath(benchmarkDir);
-        String mainClass = ViolationValidator.findMainClass(benchmarkDir);
+        String classpath = ViolationValidatorV1.buildClasspath(benchmarkDir);
+        String mainClass = ViolationValidatorV1.findMainClass(benchmarkDir);
 
         InputSearch search;
         try {

@@ -4,9 +4,13 @@ import it.unive.jlisa.witness.validator.correctness.CorrectnessValidator;
 import it.unive.jlisa.witness.validator.model.Property;
 import it.unive.jlisa.witness.validator.parser.WitnessModel;
 import it.unive.jlisa.witness.validator.parser.WitnessParserV1;
-import it.unive.jlisa.witness.validator.parser.WitnessParserV2;
+import it.unive.jlisa.witness.validator.utils.Either;
 import it.unive.jlisa.witness.validator.violation.BugFinder;
-import it.unive.jlisa.witness.validator.violation.ViolationValidator;
+import it.unive.jlisa.witness.validator.violation.ViolationValidatorV1;
+import it.unive.lisa.witness.v2.ViolationWitness;
+import it.unive.lisa.witness.v2.Witness;
+import it.unive.lisa.witness.v2.WitnessReadException;
+import it.unive.lisa.witness.v2.WitnessReader;
 import org.apache.commons.cli.*;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -14,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Entry point for the jLISA Witness Validator.
@@ -116,17 +121,29 @@ public final class Main {
 
         try {
             Property property = Property.fromName(propertyName);
-            WitnessModel model = parseWitness(witnessFile);
+            Either<WitnessModel, Witness> model = parseWitness(witnessFile);
             LOG.info("Parsed witness: {}", model);
 
             File extraSourcesDir = (extraSourcesPath != null && !extraSourcesPath.isBlank())
                     ? new File(extraSourcesPath)
                     : null;
 
-            switch (model.type()) {
-                case VIOLATION -> ViolationValidator.validate(model, property, benchmarkFile, java8Exec, extraSourcesDir,
-                        cmd.hasOption("input-search"));
-                case CORRECTNESS -> CorrectnessValidator.validate(model, benchmarkFile);
+            if (model.isLeft()) {
+                WitnessModel witnessModel = model.getLeft();
+                switch (witnessModel.type()) {
+                    case VIOLATION ->
+                            ViolationValidatorV1.validate(witnessModel, property, benchmarkFile, java8Exec, extraSourcesDir,
+                                    cmd.hasOption("input-search"));
+                    case CORRECTNESS -> CorrectnessValidator.validate(witnessModel, benchmarkFile);
+                }
+            } else {
+                Witness witness = model.getRight();
+                if (witness instanceof ViolationWitness) {
+                    //witness
+                    ViolationValidatorV1.validate(null, property, benchmarkFile, java8Exec, extraSourcesDir, cmd.hasOption("input-search"));
+                } else {
+                    throw new ValidationException("Non-Violation witness V2 not supported yet");
+                }
             }
 
         } catch (ValidationException e) {
@@ -140,7 +157,9 @@ public final class Main {
         System.exit(0);
     }
 
-    /** Bug-finding mode: no witness; looks for a run that violates the property (see {@link BugFinder}). */
+    /**
+     * Bug-finding mode: no witness; looks for a run that violates the property (see {@link BugFinder}).
+     */
     private static void findBug(String benchmarkPath, String propertyName, String java8Exec,
                                 String extraSourcesPath, String timeLimitSeconds) {
         if (benchmarkPath == null || propertyName == null) {
@@ -178,16 +197,16 @@ public final class Main {
      * Selects the appropriate parser based on the witness file extension.
      * <ul>
      *   <li>{@code .graphml} → {@link WitnessParserV1}</li>
-     *   <li>{@code .yaml} / {@code .yml} → {@link WitnessParserV2}</li>
+     *   <li>{@code .yaml} / {@code .yml} → {@link WitnessReader}</li>
      * </ul>
      */
-    private static WitnessModel parseWitness(File witnessFile) throws ValidationException {
+    private static Either<WitnessModel, Witness> parseWitness(File witnessFile) throws ValidationException, WitnessReadException, IOException {
         String name = witnessFile.getName().toLowerCase();
         if (name.endsWith(".graphml") || name.endsWith(".xml")) {
-            return WitnessParserV1.parse(witnessFile);
+            return Either.left(WitnessParserV1.parse(witnessFile));
         }
         if (name.endsWith(".yaml") || name.endsWith(".yml")) {
-            return WitnessParserV2.parse(witnessFile);
+            return Either.right(WitnessReader.read(witnessFile.toPath()));
         }
         // Unknown extension — peek at the first line to decide
         try {
@@ -196,10 +215,10 @@ public final class Main {
                     .findFirst()
                     .orElse("");
             if (firstLine.contains("<graphml") || firstLine.startsWith("<?xml")) {
-                return WitnessParserV1.parse(witnessFile);
+                return Either.left(WitnessParserV1.parse(witnessFile));
             }
             if (firstLine.startsWith("format_version") || firstLine.startsWith("---")) {
-                return WitnessParserV2.parse(witnessFile);
+                return Either.right(WitnessReader.read(witnessFile.toPath()));
             }
         } catch (java.io.IOException e) {
             throw new ValidationException("Cannot read witness file: " + e.getMessage(), e);
